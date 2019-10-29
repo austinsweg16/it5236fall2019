@@ -1,36 +1,16 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+$url = 'http://3.19.209.253/api/tasks.php';
 
-$dbconnecterror = FALSE;
-$dbh = NULL;
-$dbReadError = FALSE;
-
-require_once 'credentials.php';
-
-try{
-	
-	$conn_string = "mysql:host=".$dbserver.";dbname=".$db;
-	
-	$dbh= new PDO($conn_string, $dbusername, $dbpassword);
-	$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-}catch(Exception $e){
-	$dbconnecterror = TRUE;
-}
-
-if (!$dbconnecterror) {
-	
-	try {
-		$sql = "SELECT * FROM doList";
-		$stmt = $dbh->prepare($sql);
-		$stmt->execute();
-		$result = $stmt->fetchAll();
-	} catch (PDOException $e) {
-		$dbReadError = TRUE;
-	}
-
-}
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+	'Content-Type: application/json'
+]);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+$http_status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
 ?>
 <!doctype html>
 <html lang="en">
@@ -53,15 +33,16 @@ if (!$dbconnecterror) {
 		<a href="index.php"><h1 id="siteName">doIT</h1></a>
 		<hr>
 
-			<?php if(isset($result)) { ?>
-				<?php foreach($result as $item){ ?>
+			<?php if($http_status_code == 200) { ?>
+				<!-- json_decode converts JSON into a PHP list so we can use it -->
+				<?php foreach(json_decode($response, true) as $item){ ?>
 					<div class="list">
 						<form method="POST" action="edit.php" style="display: inline-block">
 							<input type="hidden" 	name="listID" value="<?php echo $item["listID"];?>" >
-							<input type="checkbox"	name="fin" <?php if($item["complete"]=='1'){echo "checked='checked'";} ?> >
-							<input type="text" 	name="listItem" size="50" value="<?php echo $item["listItem"];?>" maxlength="100" >
+							<input type="checkbox"	name="fin" <?php if($item["completed"]==true){echo "checked='checked'";} ?> >
+							<input type="text" 	name="listItem" size="50" value="<?php echo $item["taskName"];?>" maxlength="100" >
 							<span>by:</span>
-							<input type="date" 	name="finBy" value="<?php if($item['finishDate']=='0000-00-00'){echo '';} else {echo $item['finishDate'];} ?>" >
+							<input type="date" 	name="finBy" value="<?php if($item['taskDate']=='0000-00-00'){echo '';} else {echo $item['taskDate'];} ?>" >
 							<input type="submit" 	name="submitEdit" value="&check;" >
 						</form>
 						<form method="POST" action="delete.php" style="display: inline-block">
@@ -82,14 +63,9 @@ if (!$dbconnecterror) {
 				</form>
 			</div>
 			
-			<?php if ($dbconnecterror) { ?>
+			<?php if ($http_status_code != 200) { ?>
 			<div class="error">
-				Uh oh! There was an error connecting to the database. Please check your connection settings and try again.
-			</div>
-			<?php } ?>
-			<?php if ($dbReadError) { ?>
-			<div class="error">
-				Uh oh! There was an error reading the to do list from the database. Please check your connection settings and try again.
+				Uh oh! There was an error reading the to do list.
 			</div>
 			<?php } ?>
 			<?php if (array_key_exists('error', $_GET)) { ?>

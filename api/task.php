@@ -77,8 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] == "PUT") {
 		echo "database maybe exception fields";
 		exit();
 	}
-}
-}else if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+} else if ($_SERVER['REQUEST_METHOD'] == 'POST'){
         //don't need an id here because it hasn't been created yet.
 		
 	//Decoding the json body from the request.
